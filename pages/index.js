@@ -1,143 +1,102 @@
 import { useState } from 'react'
-import {
-  Avatar,
-  Box,
-  Button,
-  Checkbox,
-  Container,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  InputLabel,
-  Link,
-  makeStyles,
-  MenuItem,
-  Select,
-  TextField,
-  Typography
-} from '@material-ui/core'
-import LockOutlinedIcon from '@material-ui/icons/LockOutlined'
+import axios from 'axios'
+import PropTypes from 'prop-types'
+import { Button, FormControl, InputLabel, makeStyles, MenuItem, Select, TextField } from '@material-ui/core'
+import Layout from 'components/Layout'
 
 const useStyles = makeStyles((theme) => ({
-  paper: {
-    marginTop: theme.spacing(8),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  avatar: {
-    margin: theme.spacing(1),
-    backgroundColor: theme.palette.secondary.main,
-  },
-  form: {
-    width: '100%', // Fix IE 11 issue.
-    marginTop: theme.spacing(1),
-  },
-  submit: {
-    margin: theme.spacing(3, 0, 2),
-  },
   formControl: {
-    margin: theme.spacing(1),
-    minWidth: 120,
+    marginBottom: theme.spacing(1),
+    minWidth: 120
+  },
+  textField: {
+    marginBottom: theme.spacing(1)
   },
   selectEmpty: {
-    marginTop: theme.spacing(2),
+    marginTop: theme.spacing(2)
   }
 }))
 
-function Index () {
-  const [category, setCategory] = useState('')
+function Index ({ categoriesData, merchantsData }) {
+  const [categories, setCategories] = useState(categoriesData.categories)
+  const [category, setCategory] = useState()
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [merchant, setMerchant] = useState()
+  const [merchants, setMerchants] = useState(merchantsData.merchants)
+  const [sum, setSum] = useState('')
   const classes = useStyles()
 
-  const handleChange = (event) => {
+  const onCategoryChange = (event) => {
     setCategory(event.target.value)
+  }
+  const onDateChange = (event) => {
+    setDate(event.target.value)
+  }
+  const onMerchantChange = (event) => {
+    setMerchant(event.target.value)
+  }
+  const onSumChange = (sum) => {
+    setSum(sum)
+  }
+
+  const onSubmit = () => {
+    console.log('submit')
   }
 
   return (
-    <Container>
-      <div className={classes.paper}>
-        <Avatar className={classes.avatar}>
-          <LockOutlinedIcon />
-        </Avatar>
-        <Typography component="h1" variant="h5">
-          Legg inn utgift
-        </Typography>
-        <form className={classes.form} noValidate>
-        <Grid container spacing={1}>
-          <Grid item xs>
-            <TextField
-              id="outlined-number"
-              label="Kroner"
-              type="number"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              variant="outlined"
-              fullWidth
-            />
-          </Grid>
-          <Grid item xs={3}>
-            <TextField
-              id="outlined-number"
-              label="Øre"
-              type="number"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              variant="outlined"
-            />
-          </Grid>
-          <FormControl variant="outlined" className={classes.formControl} fullWidth>
-            <InputLabel id="demo-simple-select-outlined-label">Kategori</InputLabel>
-            <Select
-              labelId="demo-simple-select-outlined-label"
-              id="demo-simple-select-outlined"
-              value={category}
-              onChange={handleChange}
-              label="Age"
-            >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              <MenuItem value={10}>Ten</MenuItem>
-              <MenuItem value={20}>Twenty</MenuItem>
-              <MenuItem value={30}>Thirty</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl variant="outlined" className={classes.formControl} fullWidth>
-            <InputLabel id="demo-simple-select-outlined-label">Forhandler</InputLabel>
-            <Select
-              labelId="demo-simple-select-outlined-label"
-              id="demo-simple-select-outlined"
-              value={category}
-              onChange={handleChange}
-              label="Age"
-            >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              <MenuItem value={10}>Ten</MenuItem>
-              <MenuItem value={20}>Twenty</MenuItem>
-              <MenuItem value={30}>Thirty</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid container spacing={1}>
-          
-        </Grid>
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            color="primary"
-            className={classes.submit}
-          >
-            Legg til
-          </Button>
-        </form>
-      </div>
-    </Container>
+    <Layout>
+      <div>Legg til utgift</div>
+      <TextField className={classes.textField} label='Beløp' type='number' variant='outlined' value={sum} onChange={onSumChange} />
+      <TextField className={classes.textField} label='Dato' type='date' variant='outlined' value={date} onChange={onDateChange} />
+      <FormControl className={classes.formControl} variant='outlined'>
+        <InputLabel id='category-select-label'>Kategori</InputLabel>
+        <Select
+          labelId='category-select-label'
+          id='category-select'
+          value={category || ''}
+          onChange={onCategoryChange}
+        >
+          {categories && categories.map((category, key) => {
+            return (
+              <MenuItem key={key} value={category.id}>{category.name}</MenuItem>
+            )
+          })}
+        </Select>
+      </FormControl>
+      <FormControl className={classes.formControl} variant='outlined'>
+        <InputLabel id='merchant-select-label'>Forhandler</InputLabel>
+        <Select
+          labelId='merchant-select-label'
+          id='merchant-select'
+          value={merchant || ''}
+          onChange={onMerchantChange}
+        >
+          {merchants && merchants.map((merchant, key) => {
+            return (
+              <MenuItem key={key} value={merchant.id}>{merchant.name}</MenuItem>
+            )
+          })}
+        </Select>
+      </FormControl>
+      <Button variant='contained' color='primary' onClick={onSubmit}>Legg til</Button>
+    </Layout>
   )
+}
+
+Index.propTypes = {
+  categoriesData: PropTypes.object,
+  merchantsData: PropTypes.object
+}
+
+export async function getServerSideProps (context) {
+  const categoriesRes = await axios.get(`${process.env.BASEURL}/api/categories`)
+  const merchantsRes = await axios.get(`${process.env.BASEURL}/api/merchants`)
+  return {
+    props: {
+      categoriesData: categoriesRes.data,
+      merchantsData: merchantsRes.data
+    }
+  }
 }
 
 export default Index
